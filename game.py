@@ -140,6 +140,23 @@ def mergetiles():
 
 def getTotalPoints():
     return totalpoints
+def getHighestTile():
+    highestTile=2
+    for i in range(0,sizeofboard-1):
+        for k in range(0,sizeofboard-1):
+            if(tileofmatrix[i][k]>highestTile):
+                highestTile=tileofmatrix[i][k]
+    return highestTile
+def getHighestTileLocation():
+    highestTile=getHighestTile()
+    for i in range(1,2):
+        for j in range(1,2):
+            if tileofmatrix[i][j]==highestTile:
+                return False
+    return True
+                
+
+
 def getTileMatrix():
     return tileofmatrix
 def placerandomtile():
