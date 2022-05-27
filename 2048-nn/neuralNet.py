@@ -12,17 +12,16 @@ from pygame.locals import *
 from constants import *
 from random import *
 # https://data-flair.training/blogs/python-2048-game/
+
 sizeofboard = 4
 totalpoints = 0
 defaultscore = 2
-pygame.init()
 kb = Controller()
 surface = pygame.display.set_mode((400, 500), 0, 32)
 pygame.display.set_caption("2048 Game by DataFlair")
-
+pygame.init()
 font = pygame.font.SysFont("monospace", 40)
 fontofscore = pygame.font.SysFont("monospace", 30)
-
 tileofmatrix = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
 undomatrix = []
 black = (0, 0, 0)
@@ -57,6 +56,7 @@ colordict = {
 
 
 def main():
+    global notDone
     gameCounter=0
     # input1=input("Please input what you want to do")
     # if(input=='t'):
@@ -64,8 +64,8 @@ def main():
     # else:
     while gameCounter<10:
         playGame()
-        print("hello")
         reset()
+        notDone=True
         gameCounter+=1
     return 0
 
@@ -174,8 +174,6 @@ def playGame():
             if predProbs:
                 del predProbs[action]
 
-    if True:
-        reset()
     return 0
 
 
@@ -215,7 +213,6 @@ def step(action):
                     printmatrix()
 
         else:
-            print(getHighestTile())
             gameover()
             notDone = False
 
@@ -361,11 +358,9 @@ def gameover():
 
     label = font.render("gameover", 1, (255, 255, 255))
     label2 = font.render("score : " + str(totalpoints), 1, (255, 255, 255))
-    label3 = font.render("press 'R' to play again", 1, (255, 255, 255))
 
     surface.blit(label, (50, 100))
     surface.blit(label2, (50, 200))
-    surface.blit(label3, (50, 300))
 
 
 def reset():
@@ -375,47 +370,6 @@ def reset():
     totalpoints = 0
     surface.fill(black)
     tileofmatrix = [[0 for i in range(0, sizeofboard)] for j in range(0, sizeofboard)]
-    playGame()
-
-def savegame():
-    f = open("savedata", "w")
-
-    line1 = " ".join([str(tileofmatrix[floor(x / sizeofboard)][x % sizeofboard]) for x in range(0, sizeofboard ** 2)])
-    f.write(line1 + "\n")
-    f.write(str(sizeofboard) + "\n")
-    f.write(str(totalpoints))
-    f.close
-
-
-def undo():
-    if len(undomatrix) > 0:
-        mat = undomatrix.pop()
-
-        for i in range(0, sizeofboard ** 2):
-            tileofmatrix[floor(i / sizeofboard)][i % sizeofboard] = mat[i]
-        global totalpoints
-        totalpoints = mat[sizeofboard ** 2]
-
-        printmatrix()
-
-
-def loadgame():
-    global totalpoints
-    global sizeofboard
-    global tilematrix
-
-    f = open("savedata", "r")
-
-    mat = (f.readline()).split(' ', sizeofboard ** 2)
-    sizeofboard = int(f.readline())
-    totalpoints = int(f.readline())
-
-    for i in range(0, sizeofboard ** 2):
-        tileofmatrix[floor(i / sizeofboard)][i % sizeofboard] = int(mat[i])
-
-    f.close()
-
-    mainfunction(True)
 
 
 def isArrow(k):
