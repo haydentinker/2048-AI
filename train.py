@@ -1,3 +1,5 @@
+import random as rd
+
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
@@ -9,13 +11,12 @@ import pygame, sys, time
 from pygame.locals import *
 from constants import *
 from random import *
-
 # https://data-flair.training/blogs/python-2048-game/
 sizeofboard = 4
 totalpoints = 0
 defaultscore = 2
 pygame.init()
-
+kb = Controller()
 surface = pygame.display.set_mode((400, 500), 0, 32)
 pygame.display.set_caption("2048 Game by DataFlair")
 
@@ -37,7 +38,8 @@ purple = (156, 39, 176)
 pink = (234, 30, 99)
 deepurple = (103, 58, 183)
 deepblue = (7, 42, 108)
-
+pointsPerMove=0
+notDone = True
 colordict = {
     0: black,
     2: red,
@@ -55,11 +57,16 @@ colordict = {
 
 
 def main():
+    gameCounter=0
     # input1=input("Please input what you want to do")
     # if(input=='t'):
-    trainGame()
+    #trainGame()
     # else:
-    #playGame(False, True, False)
+    while gameCounter<10:
+        playGame()
+        print("hello")
+        reset()
+        gameCounter+=1
     return 0
 
 
@@ -118,124 +125,101 @@ def trainGame():
     print("Evaluating Model on Testing Set")
     model.evaluate(testingSet, testingValues)
     model.save('sequentialModel')
-    playGame(False, False, True)
+    playGame()
 
 
 def getcolor(i):
     return colordict[i]
 
 
-def playGame(fromLoaded=False, gathering=False, predicting=False):
-    previousActionList = []
-    same = 0
-    previousMatrix = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
-    kb = Controller()
-    if not fromLoaded:
-        placerandomtile()
-        placerandomtile()
-    printmatrix()
-    if predicting:
-        model = tf.keras.models.load_model("sequentialModel")
-    rotations = 0
-    while True:
-        if predicting:
-            normalData = 0
-            normalArray = []
-            tileArray = np.array(tileofmatrix)
-            flatArray = tileArray.flatten()
-            for i in range(0, flatArray.size):
-                if flatArray[i] == 0:
-                    normalData = 0
-                else:
-                    normalData = (math.log2((flatArray[i]))) / 12
-                normalArray.append(normalData)
-            normalTensor = tf.constant(np.reshape(normalArray, (1, 16)))
-            modelPred = model.predict(normalTensor)
-            action = np.argmax(modelPred)
-            highestProb = 0
-            if same:
-                for i in range(0, 4):
-                    if i not in previousMatrix:
-                        if modelPred[0][i] > highestProb:
-                            action = i
-                            highestProb = modelPred[0][i]
-            print(action)
-            if action == 0:
-                kb.press(Key.up)  # Presses "up" key
-                kb.release(Key.up)  # Releases "up" key
-            elif action == 1:
-                kb.press(Key.down)  # Presses "up" key
-                kb.release(Key.down)  # Releases "up" key
-            elif action == 2:
-                kb.press(Key.left)  # Presses "up" key
-                kb.release(Key.left)  # Releases "up" key
-            elif action == 3:
-                kb.press(Key.right)  # Presses "up" key
-                kb.release(Key.right)  # Releases "up" key
-            del normalTensor
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                pygame.quit()
-                sys.exit()
-            previousMatrix = tileofmatrix
-            if checkIfCanGo() == True:
-                if event.type == KEYDOWN:
-                    if isArrow(event.key):
-                        rotations = getrotations(event.key)
-                        addToUndo()
-                        for i in range(0, rotations):
-                            rotatematrixclockwise()
-
-                        if canmove():
-                            movetiles()
-                            mergetiles()
-                            placerandomtile()
-
-                        for j in range(0, (4 - rotations) % 4):
-                            rotatematrixclockwise()
-                        if tileofmatrix == previousMatrix:
-                            same = 1
-                            #previousActionList.append(action)
-                        else:
-                            same = 0
-                            #previousActionList.clear()
-                        printmatrix()
-                        if gathering:
-                            file1 = open("data.txt", "a")
-                            tileArray = np.array(tileofmatrix)
-                            flatArray = tileArray.flatten()
-                            for i in range(0, flatArray.size):
-
-                                if flatArray[i] == 0:
-                                    normalData = 0
-                                else:
-                                    normalData = (math.log2((flatArray[i]))) / 12
-                                file1.write(str(normalData) + ",")
-                            file1.write(str(rotations))
-                            file1.write("\n")
-                            file1.close()
-
+def playGame():
+    global pointsPerMove
+    global notDone
+    model = tf.keras.models.load_model("sequentialModel")
+    placerandomtile()
+    placerandomtile()
+    while notDone:
+        normalData = 0
+        sum=0
+        normalArray = []
+        tileArray = np.array(tileofmatrix)
+        flatArray = tileArray.flatten()
+        for i in range(0, flatArray.size):
+            if flatArray[i] == 0:
+                normalData = 0
             else:
-                gameover()
+                normalData = (math.log2((flatArray[i]))) / 12
+            normalArray.append(normalData)
+            sum+=normalData
+        normalTensor = tf.constant(np.reshape(normalArray, (1, 16)))
+        modelPred = model.predict(normalTensor)
+        same = True
+        reshaped = np.reshape(modelPred, (4,))
+        predProbs = {
+            0: reshaped[0],
+            1: reshaped[1],
+            2: reshaped[2],
+            3: reshaped[3]
+        }
+        previousPoints=pointsPerMove
+        while same:
+            time.sleep(.2)
+            if predProbs:
+                action = max(predProbs, key=predProbs.get)
+            else:
+                action=rd.randint(0,4)
+            step(action)
+            if previousPoints-pointsPerMove!=0:
+                same=False
+            if predProbs:
+                del predProbs[action]
 
+    if True:
+        reset()
+    return 0
+
+
+def step(action):
+    global notDone
+    if action == 0:
+        kb.press(Key.up)  # Presses "up" key
+        kb.release(Key.up)  # Releases "up" key
+    elif action == 1:
+        kb.press(Key.down)  # Presses "up" key
+        kb.release(Key.down)  # Releases "up" key
+    elif action == 2:
+        kb.press(Key.left)  # Presses "up" key
+        kb.release(Key.left)  # Releases "up" key
+    elif action == 3:
+        kb.press(Key.right)  # Presses "up" key
+        kb.release(Key.right)  # Releases "up" key
+    for event in pygame.event.get():
+        if event.type == QUIT:
+            pygame.quit()
+            sys.exit()
+        if checkIfCanGo():
             if event.type == KEYDOWN:
-                global sizeofboard
+                if isArrow(event.key):
+                    rotations = getrotations(event.key)
+                    addToUndo()
+                    for i in range(0, rotations):
+                        rotatematrixclockwise()
 
-                if event.key == pygame.K_r:
-                    reset()
-                if 50 < event.key and 56 > event.key:
-                    sizeofboard = event.key - 48
-                    reset()
-                if event.key == pygame.K_s:
+                    if canmove():
+                        movetiles()
+                        mergetiles()
+                        placerandomtile()
 
-                    savegame()
-                elif event.key == pygame.K_l:
-                    loadgame()
+                    for j in range(0, (4 - rotations) % 4):
+                        rotatematrixclockwise()
+                    printmatrix()
 
-                elif event.key == pygame.K_u:
-                    undo()
+        else:
+            print(getHighestTile())
+            gameover()
+            notDone = False
 
-        pygame.display.update()
+    pygame.display.update()
 
 
 def canmove():
@@ -260,7 +244,8 @@ def movetiles():
 
 def mergetiles():
     global totalpoints
-    reward = 0
+    global pointsPerMove
+    pointsPerMove=0
     for i in range(0, sizeofboard):
         for k in range(0, sizeofboard - 1):
             if tileofmatrix[i][k] == tileofmatrix[i][k + 1] and tileofmatrix[i][k] != 0:
@@ -268,8 +253,9 @@ def mergetiles():
                 tileofmatrix[i][k + 1] = 0
                 totalpoints += tileofmatrix[i][k]
                 totalpoints += tileofmatrix[i][k]
+                pointsPerMove += tileofmatrix[i][k]
+                pointsPerMove += tileofmatrix[i][k]
                 movetiles()
-
 
 def getTotalPoints():
     return totalpoints
@@ -289,6 +275,8 @@ def getTileMatrix():
 
 
 def placerandomtile():
+    global sameGrid
+    sameGrid=False
     c = 0
     for i in range(0, sizeofboard):
         for j in range(0, sizeofboard):
@@ -318,7 +306,7 @@ def printmatrix():
     for i in range(0, sizeofboard):
         for j in range(0, sizeofboard):
             pygame.draw.rect(surface, getcolor(tileofmatrix[i][j]), (
-            i * (400 / sizeofboard), j * (400 / sizeofboard) + 100, 400 / sizeofboard, 400 / sizeofboard))
+                i * (400 / sizeofboard), j * (400 / sizeofboard) + 100, 400 / sizeofboard, 400 / sizeofboard))
             label = font.render(str(tileofmatrix[i][j]), 1, (255, 255, 255))
             label2 = fontofscore.render("YourScore:" + str(totalpoints), 1, (255, 255, 255))
             surface.blit(label, (i * (400 / sizeofboard) + 30, j * (400 / sizeofboard) + 130))
@@ -368,7 +356,7 @@ def rotatematrixclockwise():
 
 def gameover():
     global totalpoints
-
+    print(getHighestTile())
     surface.fill(black)
 
     label = font.render("gameover", 1, (255, 255, 255))
@@ -387,8 +375,7 @@ def reset():
     totalpoints = 0
     surface.fill(black)
     tileofmatrix = [[0 for i in range(0, sizeofboard)] for j in range(0, sizeofboard)]
-    playGame(False, True, False)
-
+    playGame()
 
 def savegame():
     f = open("savedata", "w")
