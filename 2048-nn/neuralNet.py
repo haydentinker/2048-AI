@@ -56,17 +56,18 @@ colordict = {
 
 
 def main():
-    global notDone
-    gameCounter=0
-    # input1=input("Please input what you want to do")
-    # if(input=='t'):
-    #trainGame()
-    # else:
-    while gameCounter<10:
+    mainInput=input("Please input what you want to do. 0 to Train a Model and Play a Round. Anything else to compare a model to a random agent and see them play. ")
+    intInput=int(mainInput)
+    if not intInput:
+        print("Training New Model")
+        trainGame()
+    else:
+        print("Starting Random Agent")
+        randomAgent()
+        print("Done With Random Agent")
+        reset()
         playGame()
         reset()
-        notDone=True
-        gameCounter+=1
     return 0
 
 
@@ -84,9 +85,7 @@ def trainGame():
         else:
             for nbr in file_line.split(','):
                 tempRow.append(float(nbr))
-            if len(tempRow) != 17:
-                print("Send Help")
-            else:
+            if len(tempRow) == 17:
                 dataSet.append(tempRow)
     print("Done Reading Data")
     print("Dividing data into testing and training")
@@ -116,26 +115,41 @@ def trainGame():
         tf.keras.layers.Flatten(input_shape=(16,)),
         tf.keras.layers.Dense(256, activation='relu'),
         tf.keras.layers.Dense(256, activation='relu'),
+        tf.keras.layers.Dense(256, activation='relu'),
+        tf.keras.layers.Dense(256, activation='relu'),
+        tf.keras.layers.Dense(256, activation='relu'),
+        tf.keras.layers.Dense(256, activation='relu'),
+        tf.keras.layers.Dense(256, activation='relu'),
+        tf.keras.layers.Dense(256, activation='relu'),
+        tf.keras.layers.Dense(256, activation='relu'),
+        tf.keras.layers.Dense(256, activation='relu'),
+        tf.keras.layers.Dense(256, activation='relu'),
         tf.keras.layers.Dense(4, activation='softmax')
     ])
     model.compile(optimizer='adam',
                   loss='sparse_categorical_crossentropy',
                   metrics=['accuracy'])
-    model.fit(trainingSet, trainingValues, epochs=5)
+    model.fit(trainingSet, trainingValues, epochs=100)
     print("Evaluating Model on Testing Set")
     model.evaluate(testingSet, testingValues)
-    model.save('sequentialModel')
+    model.save('sequentialModel2')
     playGame()
 
 
 def getcolor(i):
     return colordict[i]
 
-
+def randomAgent():
+    global notDone
+    placerandomtile()
+    placerandomtile()
+    while notDone:
+        action=rd.randint(0,4)
+        step(action)
 def playGame():
     global pointsPerMove
     global notDone
-    model = tf.keras.models.load_model("sequentialModel")
+    model = tf.keras.models.load_model("improvedSequentialModel")
     placerandomtile()
     placerandomtile()
     while notDone:
@@ -163,7 +177,8 @@ def playGame():
         }
         previousPoints=pointsPerMove
         while same:
-            time.sleep(.2)
+            # if not notDone:
+            #     return
             if predProbs:
                 action = max(predProbs, key=predProbs.get)
             else:
@@ -179,6 +194,7 @@ def playGame():
 
 def step(action):
     global notDone
+    time.sleep(.2)
     if action == 0:
         kb.press(Key.up)  # Presses "up" key
         kb.release(Key.up)  # Releases "up" key
@@ -215,6 +231,7 @@ def step(action):
         else:
             gameover()
             notDone = False
+            return 
 
     pygame.display.update()
 
@@ -353,12 +370,11 @@ def rotatematrixclockwise():
 
 def gameover():
     global totalpoints
-    print(getHighestTile())
     surface.fill(black)
 
     label = font.render("gameover", 1, (255, 255, 255))
     label2 = font.render("score : " + str(totalpoints), 1, (255, 255, 255))
-
+    print(totalpoints)
     surface.blit(label, (50, 100))
     surface.blit(label2, (50, 200))
 
@@ -366,7 +382,8 @@ def gameover():
 def reset():
     global totalpoints
     global tileofmatrix
-
+    global notDone
+    notDone= True
     totalpoints = 0
     surface.fill(black)
     tileofmatrix = [[0 for i in range(0, sizeofboard)] for j in range(0, sizeofboard)]
