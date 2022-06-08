@@ -113,17 +113,14 @@ def trainGame():
     print("Preparing to Train Neural Network")
     model = tf.keras.models.Sequential([
         tf.keras.layers.Flatten(input_shape=(16,)),
-        tf.keras.layers.Dense(256, activation='relu'),
-        tf.keras.layers.Dense(256, activation='relu'),
-        tf.keras.layers.Dense(256, activation='relu'),
-        tf.keras.layers.Dense(256, activation='relu'),
-        tf.keras.layers.Dense(256, activation='relu'),
-        tf.keras.layers.Dense(256, activation='relu'),
-        tf.keras.layers.Dense(256, activation='relu'),
-        tf.keras.layers.Dense(256, activation='relu'),
-        tf.keras.layers.Dense(256, activation='relu'),
-        tf.keras.layers.Dense(256, activation='relu'),
-        tf.keras.layers.Dense(256, activation='relu'),
+        tf.keras.layers.Dense(512, activation='relu'),
+        tf.keras.layers.Dense(512, activation='relu'),
+        tf.keras.layers.Dense(512, activation='relu'),
+        tf.keras.layers.Dense(512, activation='relu'),
+        tf.keras.layers.Dense(512, activation='relu'),
+        tf.keras.layers.Dense(512, activation='relu'),
+        tf.keras.layers.Dense(512, activation='relu'),
+        tf.keras.layers.Dense(512, activation='relu'),
         tf.keras.layers.Dense(4, activation='softmax')
     ])
     model.compile(optimizer='adam',
@@ -132,9 +129,9 @@ def trainGame():
     model.fit(trainingSet, trainingValues, epochs=100)
     print("Evaluating Model on Testing Set")
     model.evaluate(testingSet, testingValues)
-    model.save('sequentialModel2')
+    model.save('increasedBothModel')
     playGame()
-
+    reset()
 
 def getcolor(i):
     return colordict[i]
@@ -149,7 +146,7 @@ def randomAgent():
 def playGame():
     global pointsPerMove
     global notDone
-    model = tf.keras.models.load_model("improvedSequentialModel")
+    model = tf.keras.models.load_model("increasedBothModel")
     placerandomtile()
     placerandomtile()
     while notDone:
